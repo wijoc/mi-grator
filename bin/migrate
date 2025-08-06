@@ -4,6 +4,9 @@
 require __DIR__ . '/../../../autoload.php';
 
 use Wijoc\MIGrator\Kernel;
+use Wijoc\MIGrator\Migrations\EnvLoader;
+
+new EnvLoader();
 
 $kernel = new Kernel();
 $kernel->run();
