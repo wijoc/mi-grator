@@ -2,26 +2,16 @@
 
 namespace Wijoc\MIGrator\Migrations;
 
+use Dotenv\Dotenv;
+
 class EnvLoader
 {
     public function __construct()
     {
-        $this->loadEnvFile();
-    }
-
-    public function loadEnvFile(string $path = __DIR__ . '/.env'): void
-    {
-        if (file_exists($path)) {
-            $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            foreach ($lines as $line) {
-                if (strpos(trim($line), '#') === 0) continue;
-
-                [$name, $value] = array_map('trim', explode('=', $line, 2));
-                if (!isset($_ENV[$name]) && getenv($name) === false) {
-                    putenv("$name=$value");
-                    $_ENV[$name] = $value;
-                }
-            }
+        $root = dirname(__DIR__, 3); // Move up to project root
+        if (file_exists($root . '/.env')) {
+            $dotenv = Dotenv::createImmutable($root);
+            $dotenv->safeLoad();  // Does not throw error if .env missing
         }
     }
 }
