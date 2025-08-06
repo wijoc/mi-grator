@@ -1,0 +1,30 @@
+{
+    "name": "wijoc/mi-grator",
+    "description": "A stand alone database migration for PHP and Wordpress.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Joshua Wicaksono",
+            "email": "wicaksonojoshua@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^7.4 || ^8.0 || ^8.1 || ^8.2",
+        "symfony/console": "^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Wijoc\\MIGrator\\": "src/"
+        }
+    },
+    "bin": [
+        "bin/migrate"
+    ],
+    "scripts": {
+        "migrate": "Wijoc\\MIGrator\\Kernel::run"
+    },
+    "suggest": {
+        "wp-cli/wp-cli": "Install WP-CLI globally if you want WP-CLI support"
+    }
+  }
