@@ -16,17 +16,17 @@ class Migration
     private $database;
     private $wordpress;
     private $wpdb;
-    private $migrationTable;
     private $migrations;
     private $migrationTableName;
     private $migrationFilePath;
 
-    public function __construct(string $host = '', string $username = '', string $password = '', string $database = '')
+    public function __construct()
     {
         $this->connection();
         $this->createTableMigration();
         $this->resolveTableMigrationName();
         $this->resolveFileMigrationPath();
+        $this->resolveConnectionCredential();
 
         $this->migrations = [
             $this->migrationFilePath . '/*.php',
@@ -47,17 +47,12 @@ class Migration
      * @return self
      * @throws Exception - When failed to create connection.
      */
-    protected function connection(string $host = '', string $username = '', string $password = '', string $database = ''): self
+    protected function connection(): self
     {
         if ($this->checkIfWordpress()) {
             global $wpdb;
             $this->wpdb = $wpdb;
         } else {
-            $this->host = $host;
-            $this->username = $username;
-            $this->password = $password;
-            $this->database = $database;
-
             $this->connection = new mysqli($this->host, $this->username, $this->password, $this->database);
 
             if ($this->connection->connect_error) {
@@ -189,6 +184,61 @@ class Migration
         } else {
             $this->migrationFilePath = ABSPATH . '/migrations';
             return ABSPATH . '/migrations';
+        }
+    }
+
+    private function resolveConnectionCredential()
+    {
+        /** Host */
+        $host = getenv("DB_HOST");
+
+        if ($host !== false && $host !== '') {
+            $this->host = $host;
+            return $host;
+        }
+
+        if (defined('DB_HOST')) {
+            $this->host = constant('DB_HOST');
+            return constant('DB_HOST');
+        }
+
+        /** Username */
+        $user = getenv("DB_USER");
+
+        if ($user !== false && $user !== '') {
+            $this->username = $user;
+            return $user;
+        }
+
+        if (defined('DB_USER')) {
+            $this->username = constant('DB_USER');
+            return constant('DB_USER');
+        }
+
+        /** Password */
+        $password = getenv("DB_PASSWORD");
+
+        if ($password !== false && $password !== '') {
+            $this->password = $password;
+            return $password;
+        }
+
+        if (defined('DB_PASSWORD')) {
+            $this->password = constant('DB_PASSWORD');
+            return constant('DB_PASSWORD');
+        }
+
+        /** Database */
+        $database = getenv("DB_NAME");
+
+        if ($database !== false && $database !== '') {
+            $this->database = $database;
+            return $database;
+        }
+
+        if (defined('DB_NAME')) {
+            $this->database = constant('DB_NAME');
+            return constant('DB_NAME');
         }
     }
 
