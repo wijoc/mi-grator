@@ -11,7 +11,7 @@ use Wijoc\MIGrator\Migration;
 
 class MakeMigrateCommand extends Command
 {
-    protected static $defaultName = 'make:migrate';
+    protected static $defaultName = 'make:migration';
 
     protected function configure()
     {
