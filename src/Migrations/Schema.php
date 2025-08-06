@@ -1,6 +1,6 @@
 <?php
 
-namespace Wijoc\MIGrator;
+namespace Wijoc\MIGrator\Migrations;
 
 use Exception;
 use mysqli;

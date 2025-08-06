@@ -1,10 +1,11 @@
 <?php
 
-namespace Wijoc\MIGrator;
+namespace Wijoc\MIGrator\Migrations;
 
 use Exception;
 use mysqli;
 use mysqli_result;
+use Wijoc\MIGrator\QueryBuilder;
 
 class Migration
 {

@@ -1,5 +1,7 @@
 <?php
 
+namespace Wijoc\MIGrator\Migrations;
+
 class EnvLoader
 {
     public function __construct()

@@ -1,7 +1,6 @@
 <?php
 
 use Wijoc\MIGrator;
-use Wijoc\MIGrator\Migration;
 
 if (defined('WP_CLI') && WP_CLI) {
     class MigrationCommand
