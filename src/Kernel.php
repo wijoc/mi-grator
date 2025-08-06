@@ -3,7 +3,7 @@
 namespace Wijoc\MIGrator;
 
 use Symfony\Component\Console\Application;
-use Wijoc\MIGrator\Commands\MakeMigrateCommand;
+use Wijoc\MIGrator\Commands\MakeMigrationCommand;
 use Wijoc\MIGrator\Commands\MigrateCommand;
 use Wijoc\MIGrator\Commands\MigrateFreshCommand;
 use Wijoc\MIGrator\Commands\MigrateRollbackCommand;
@@ -15,7 +15,7 @@ class Kernel
     {
         $app = new Application('CLI Migrate Tool', '1.0.0');
 
-        $app->add(new MakeMigrateCommand());
+        $app->add(new MakeMigrationCommand());
         $app->add(new MigrateCommand());
         $app->add(new MigrateFreshCommand());
         $app->add(new MigrateRollbackCommand());

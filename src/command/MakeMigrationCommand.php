@@ -9,7 +9,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Wijoc\MIGrator\Migration;
 
-class MakeMigrateCommand extends Command
+class MakeMigrationCommand extends Command
 {
     protected static $defaultName = 'make:migration';
 

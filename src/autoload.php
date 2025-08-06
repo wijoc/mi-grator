@@ -9,6 +9,7 @@ return new class
             __DIR__ . '/migration/*.php',
             __DIR__ . '/command/*.php',
             __DIR__ . '/WPCLICommand.php',
+            __DIR__ . '/Kernel.php',
         ]);
     }
 
