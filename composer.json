@@ -26,6 +26,6 @@
         "wp-cli/wp-cli": "Install WP-CLI globally if you want WP-CLI support"
     },
     "files": [
-        "wp-cli-register.php"
+        "src/WPCLICommand.php"
     ]
   }
