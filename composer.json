@@ -17,15 +17,15 @@
     "autoload": {
         "psr-4": {
             "Wijoc\\MIGrator\\": "src/"
-        }
+        },
+        "files": [
+            "src/WPCLICommand.php"
+        ]
     },
     "bin": [
         "bin/mi-grator"
     ],
     "suggest": {
         "wp-cli/wp-cli": "Install WP-CLI globally if you want WP-CLI support"
-    },
-    "files": [
-        "src/WPCLICommand.php"
-    ]
+    }
   }
