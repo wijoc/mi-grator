@@ -1176,9 +1176,27 @@ class QueryBuilder
         return $result;
     }
 
+    /**
+     * Execute query function
+     *
+     * @param string $query
+     * @return void
+     */
     private function execute(string $query)
     {
-        return $this->connection->query($query);
+        if (substr_count($query, '?')) {
+            $stmt = $this->connection->prepare($query);
+            $this->_bindParamsArray($stmt, $this->_prepareQueryParameter());
+            $success = $stmt->execute();
+
+            if (is_bool($success) && $success) {
+                return $stmt->get_result();
+            }
+
+            return $success;
+        } else {
+            return $this->connection->query($query);
+        }
     }
 
     /**
@@ -1227,7 +1245,12 @@ class QueryBuilder
                     $this->parameters[]         = $parameter;
                 }
 
-                $values .= "('" . implode("', '", $parameterPlaceholders) . "')";
+
+                if ($this->wordpress) {
+                    $values .= "('" . implode("', '", $parameterPlaceholders) . "')";
+                } else {
+                    $values .= "(" . implode(", ", $parameterPlaceholders) . ")";
+                }
                 if ($i < (count($this->insertData) - 1)) {
                     $values .= ', ';
                 }
@@ -1518,7 +1541,7 @@ class QueryBuilder
      * @param mixed $value
      * @return array
      */
-    private function _prepareParameters(mixed $value, bool $bindType = true): array
+    private function _prepareParameters(mixed $value, bool $bindType = false): array
     {
         /** Determine the data type of the value */
         switch (true) {
@@ -1665,6 +1688,35 @@ class QueryBuilder
                 return ($strict ? "CAST(`{$source}` AS BINARY)" : "CAST({$source} AS BINARY)");
             default:
                 return $source;
+        }
+    }
+
+    /**
+     * Set statement params function
+     *
+     * @param Object $stmt
+     * @param array $params
+     * @return void
+     */
+    private function _bindParamsArray(Object $stmt, array $params)
+    {
+        if (!empty($params)) {
+            $types = '';
+            $values = [];
+
+            foreach ($params as $param) {
+                if (is_int($param)) {
+                    $types .= 'i';
+                } elseif (is_float($param)) {
+                    $types .= 'd';
+                } else {
+                    $types .= 's';
+                }
+
+                $values[] = $param;
+            }
+
+            $stmt->bind_param($types, ...$values);
         }
     }
 

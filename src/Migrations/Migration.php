@@ -22,11 +22,11 @@ class Migration
 
     public function __construct()
     {
-        $this->connection();
-        $this->createTableMigration();
+        $this->resolveConnectionCredential();
         $this->resolveTableMigrationName();
         $this->resolveFileMigrationPath();
-        $this->resolveConnectionCredential();
+        $this->connection();
+        $this->createTableMigration();
 
         $this->migrations = [
             $this->migrationFilePath . '/*.php',
@@ -108,7 +108,7 @@ class Migration
         $query = "CREATE TABLE IF NOT EXISTS `{$this->migrationTableName}` (
                     `id` INT AUTO_INCREMENT PRIMARY KEY,
                     `migration` VARCHAR(255),
-                    `table` VARCHAR(255),
+                    `table_name` VARCHAR(255),
                     `type` VARCHAR(255),
                     `batch` INT
                 )";
@@ -182,64 +182,65 @@ class Migration
             $this->migrationFilePath = get_stylesheet_directory() . '/migrations';
             return get_stylesheet_directory() . '/migrations';
         } else {
-            $this->migrationFilePath = ABSPATH . '/migrations';
-            return ABSPATH . '/migrations';
+            $root = dirname(__DIR__, 5);
+            $this->migrationFilePath = $root . '/migrations';
+            return $root . '/migrations';
         }
     }
 
     private function resolveConnectionCredential()
     {
         /** Host */
-        $host = getenv("DB_HOST");
+        $host = getenv("DB_HOST") ?? "";
 
-        if ($host !== false && $host !== '') {
-            $this->host = $host;
-            return $host;
+        if ((!isset($host) || $host == "") && isset($_ENV["DB_HOST"])) {
+            $host = $_ENV["DB_HOST"] ?? "";
         }
 
-        if (defined('DB_HOST')) {
-            $this->host = constant('DB_HOST');
-            return constant('DB_HOST');
+        if ((!isset($host) || $host == "") && defined('DB_HOST')) {
+            $host = constant('DB_HOST') ?? "";
         }
+
+        $this->host = $host;
 
         /** Username */
-        $user = getenv("DB_USER");
+        $user = getenv("DB_USER") ?? "";
 
-        if ($user !== false && $user !== '') {
-            $this->username = $user;
-            return $user;
+        if ((!isset($user) || $user == "") && isset($_ENV["DB_USER"])) {
+            $user = $_ENV["DB_USER"] ?? "";
         }
 
-        if (defined('DB_USER')) {
-            $this->username = constant('DB_USER');
-            return constant('DB_USER');
+        if ((!isset($user) || $user == "") && defined('DB_USER')) {
+            $this->username = constant('DB_USER') ?? "";
         }
+
+        $this->username = $user;
 
         /** Password */
-        $password = getenv("DB_PASSWORD");
+        $password = getenv("DB_PASSWORD") ?? "";
 
-        if ($password !== false && $password !== '') {
-            $this->password = $password;
-            return $password;
+        if ((!isset($password) || $password == "") && isset($_ENV["DB_PASSWORD"])) {
+            $password = $_ENV["DB_PASSWORD"] ?? "";
         }
 
-        if (defined('DB_PASSWORD')) {
-            $this->password = constant('DB_PASSWORD');
-            return constant('DB_PASSWORD');
+        if ((!isset($password) || $password == "") && defined('DB_PASSWORD')) {
+            $this->password = constant('DB_PASSWORD') ?? "";
         }
+
+        $this->password = $password;
 
         /** Database */
-        $database = getenv("DB_NAME");
+        $database = getenv("DB_NAME") ?? "";
 
-        if ($database !== false && $database !== '') {
-            $this->database = $database;
-            return $database;
+        if ((!isset($database) || $database == "") && isset($_ENV["DB_NAME"])) {
+            $database = $_ENV["DB_NAME"] ?? "";
         }
 
-        if (defined('DB_NAME')) {
-            $this->database = constant('DB_NAME');
-            return constant('DB_NAME');
+        if ((!isset($database) || $database == "") && defined('DB_NAME')) {
+            $this->database = constant('DB_NAME') ?? "";
         }
+
+        $this->database = $database;
     }
 
     /**
@@ -256,10 +257,8 @@ class Migration
         $defaultMigrationCode = <<<PHP
             <?php
 
-            use MI\DB\Migration;
-            use MI\DB\Schema;
-
-            defined("ABSPATH") or die("Direct access not allowed!");
+            use Wijoc\MIGrator\Migration;
+            use Wijoc\MIGrator\Schema;
 
             return new class extends Migration
             {
@@ -350,7 +349,7 @@ class Migration
                             /** Prepare to store migrations data */
                             $fileMigrated = [
                                 'migration' => basename($file),
-                                'table' => $log['table'],
+                                'table_name' => $log['table'],
                                 'type' => $log['type'],
                                 'batch' => $nextBatchNumber
                             ];
@@ -395,7 +394,7 @@ class Migration
                         /** Prepare to store migrations data */
                         $fileMigrated = [
                             'migration' => $filename,
-                            'table' => $log['table'],
+                            'table_name' => $log['table'],
                             'type' => $log['type'],
                             'batch' => $nextBatchNumber
                         ];
@@ -404,7 +403,7 @@ class Migration
 
                     Schema::$log = [];
 
-                    echo "Successfully migrate {$filename}";
+                    echo "Successfully migrate {$filename} \n";
                 }
             }
         }
@@ -475,8 +474,13 @@ class Migration
      */
     protected function getMigrationFile(): array
     {
-        $qb = new QueryBuilder();
-        $results = $qb->table("{$this->migrationTableName}")->select('migrations')->orderBy('batch', 'DESC')->get();
+        if ($this->wordpress) {
+            $qb = new QueryBuilder();
+        } else {
+            $qb = new QueryBuilder($this->host, $this->username, $this->password, $this->database);
+        }
+
+        $results = $qb->table("{$this->migrationTableName}")->select('migration')->orderBy('batch', 'DESC')->get();
         $migratedFiles = [];
 
         if ($this->wordpress) {
@@ -492,11 +496,13 @@ class Migration
                 $migratedFiles[] = $migration['migrations'];
             }
         } else {
-            $migrations = $results->fetch_array(MYSQLI_ASSOC);
-            $results->free(); // free the memory used for data
+            if (is_object($results)) {
+                $migrations = $results->fetch_all(MYSQLI_ASSOC);
+                $results->free(); // free the memory used for data
 
-            foreach ($migrations as $migration) {
-                $migratedFiles[] = $migration['migrations'];
+                foreach ($migrations as $migration) {
+                    $migratedFiles[] = $migration['migration'];
+                }
             }
         }
 
@@ -510,8 +516,13 @@ class Migration
      */
     protected function getMigrationTable(): array
     {
-        $qb = new QueryBuilder();
-        $results = $qb->table("{$this->migrationTableName}")->select('table')->where('type', '=', 'create')->orderBy('batch', 'DESC')->get();
+        if ($this->wordpress) {
+            $qb = new QueryBuilder();
+        } else {
+            $qb = new QueryBuilder($this->host, $this->username, $this->password, $this->database);
+        }
+
+        $results = $qb->table("{$this->migrationTableName}")->select('table_name')->where('type', '=', 'create')->orderBy('batch', 'DESC')->get();
         $migratedFiles = [];
 
         if ($this->wordpress) {
@@ -524,16 +535,18 @@ class Migration
             }
 
             foreach ($migrations as $migration) {
-                $migratedFiles[] = $migration['table'];
+                $migratedFiles[] = $migration['table_name'];
                 array_unique($migratedFiles);
             }
         } else {
-            $migrations = $results->fetch_array(MYSQLI_ASSOC);
-            $results->free(); // free the memory used for data
+            if (is_object($results)) {
+                $migrations = $results->fetch_all(MYSQLI_ASSOC);
+                $results->free(); // free the memory used for data
 
-            foreach ($migrations as $migration) {
-                $migratedFiles[] = $migration['table'];
-                array_unique($migratedFiles);
+                foreach ($migrations as $migration) {
+                    $migratedFiles[] = $migration['table_name'];
+                    array_unique($migratedFiles);
+                }
             }
         }
 
@@ -547,7 +560,12 @@ class Migration
      */
     protected function getLastBatchMigration(): array
     {
-        $qb = new QueryBuilder();
+        if ($this->wordpress) {
+            $qb = new QueryBuilder();
+        } else {
+            $qb = new QueryBuilder($this->host, $this->username, $this->password, $this->database);
+        }
+
         $results = $qb->table("{$this->migrationTableName}")->select("*")->where("batch", "insubquery", "SELECT MAX(batch) FROM {$this->migrationTableName}")->orderBy('id', 'DESC')->get();
         $migratedFiles = [];
 
@@ -565,12 +583,14 @@ class Migration
                 array_unique($migratedFiles);
             }
         } else {
-            $migrations = $results->fetch_array(MYSQLI_ASSOC);
-            $results->free(); // free the memory used for data
+            if (is_object($results)) {
+                $migrations = $results->fetch_all(MYSQLI_ASSOC);
+                $results->free(); // free the memory used for data
 
-            foreach ($migrations as $migration) {
-                $migratedFiles[$migration['id']] = $migration['migration'];
-                array_unique($migratedFiles);
+                foreach ($migrations as $migration) {
+                    $migratedFiles[$migration['id']] = $migration['migration'];
+                    array_unique($migratedFiles);
+                }
             }
         }
 
@@ -584,7 +604,12 @@ class Migration
      */
     protected function getNextBatchNumber(): int
     {
-        $qb = new QueryBuilder();
+        if ($this->wordpress) {
+            $qb = new QueryBuilder();
+        } else {
+            $qb = new QueryBuilder($this->host, $this->username, $this->password, $this->database);
+        }
+
         $results = $qb->table("{$this->migrationTableName}")->select("batch")->orderBy('batch', 'DESC')->get();
         $nextBatchNumber = 1;
 
@@ -603,12 +628,14 @@ class Migration
                 }
             }
         } else {
-            $migrations = $results->fetch_array(MYSQLI_ASSOC);
-            $results->free(); // free the memory used for data
+            if (is_object($results)) {
+                $migrations = $results->fetch_array(MYSQLI_ASSOC);
+                $results->free(); // free the memory used for data
 
-            if (isset($migrations[0])) {
-                if (isset($migrations[0]['batch']) && is_numeric($migrations[0]['batch'])) {
-                    $nextBatchNumber = (int)$migrations[0]['batch'] + 1;
+                if (isset($migrations[0])) {
+                    if (isset($migrations[0]['batch']) && is_numeric($migrations[0]['batch'])) {
+                        $nextBatchNumber = (int)$migrations[0]['batch'] + 1;
+                    }
                 }
             }
         }
@@ -626,29 +653,31 @@ class Migration
         /** Get data from migration table */
         $createdTable = $this->getMigrationTable();
 
-        $query = "";
-        foreach ($createdTable as $table) {
-            $query .= "DROP TABLE IF EXISTS `{$table}`\n";
-        }
+        if (!empty($createdTable)) {
+            $query = "";
+            foreach ($createdTable as $table) {
+                $query .= "DROP TABLE IF EXISTS `{$table}`\n";
+            }
 
-        $queryDisableForeignKeyChecks = "SET FOREIGN_KEY_CHECKS=0;";
-        $queryEnableForeignKeyChecks = "SET FOREIGN_KEY_CHECKS=1;";
-        if ($this->wordpress) {
-            /** Disable foreign key checks */
-            $this->wpdb->get_results($queryDisableForeignKeyChecks, 'ARRAY_A');
+            $queryDisableForeignKeyChecks = "SET FOREIGN_KEY_CHECKS=0;";
+            $queryEnableForeignKeyChecks = "SET FOREIGN_KEY_CHECKS=1;";
+            if ($this->wordpress) {
+                /** Disable foreign key checks */
+                $this->wpdb->get_results($queryDisableForeignKeyChecks, 'ARRAY_A');
 
-            $this->wpdb->get_results($query, 'ARRAY_A');
+                $this->wpdb->get_results($query, 'ARRAY_A');
 
-            /** Enable foreign key checks */
-            $this->wpdb->get_results($queryEnableForeignKeyChecks, 'ARRAY_A');
-        } else {
-            /** Disable foreign key checks */
-            $this->execute($queryDisableForeignKeyChecks);
+                /** Enable foreign key checks */
+                $this->wpdb->get_results($queryEnableForeignKeyChecks, 'ARRAY_A');
+            } else {
+                /** Disable foreign key checks */
+                $this->execute($queryDisableForeignKeyChecks);
 
-            $this->execute($query);
+                $this->execute($query);
 
-            /** Enable foreign key checks */
-            $this->execute($queryEnableForeignKeyChecks);
+                /** Enable foreign key checks */
+                $this->execute($queryEnableForeignKeyChecks);
+            }
         }
     }
 
@@ -676,11 +705,19 @@ class Migration
      */
     protected function deleteLastBatchMigration()
     {
-        $qb = new QueryBuilder();
+        if ($this->wordpress) {
+            $qb = new QueryBuilder();
+        } else {
+            $qb = new QueryBuilder($this->host, $this->username, $this->password, $this->database);
+        }
 
         $deleteCondition = [
-            'operator' => 'insubquery',
-            'value' => "SELECT MAX(batch) FROM {$this->migrationTableName}"
+            'batch' => [
+                'operator' => 'insubquery',
+                'value' => "SELECT batch FROM (
+                                SELECT MAX(batch) AS batch FROM {$this->migrationTableName}
+                            ) AS temp"
+            ]
         ];
         $query = $qb->table("{$this->migrationTableName}")->delete($deleteCondition);
 
@@ -696,7 +733,11 @@ class Migration
     protected function writeMigrationLog(array $migrations)
     {
         if (!empty($migrations)) {
-            $qb = new QueryBuilder();
+            if ($this->wordpress) {
+                $qb = new QueryBuilder();
+            } else {
+                $qb = new QueryBuilder($this->host, $this->username, $this->password, $this->database);
+            }
 
             $query = $qb->table("{$this->migrationTableName}")->insert($migrations);
 

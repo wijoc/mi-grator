@@ -5,6 +5,7 @@ namespace Wijoc\MIGrator\Migrations;
 use Exception;
 use mysqli;
 use mysqli_result;
+use Wijoc\MIGrator\Migrations\EnvLoader;
 
 // class Blueprint extends QueryBuilder
 class Schema
@@ -26,9 +27,12 @@ class Schema
 
     public static array $log = [];
 
-    public function __construct(string $host = '', string $username = '', string $password = '', string $database = '')
+    public function __construct()
     {
-        $this->connection($host, $username, $password, $database);
+        new EnvLoader();
+        $this->resolveConnectionCredential();
+
+        $this->connection();
     }
 
     /**
@@ -44,17 +48,12 @@ class Schema
      * @return self
      * @throws Exception - When failed to create connection.
      */
-    protected function connection(string $host = '', string $username = '', string $password = '', string $database = ''): self
+    protected function connection(): self
     {
         if ($this->checkIfWordpress()) {
             global $wpdb;
             $this->wpdb = $wpdb;
         } else {
-            $this->host = $host;
-            $this->username = $username;
-            $this->password = $password;
-            $this->database = $database;
-
             $this->connection = new mysqli($this->host, $this->username, $this->password, $this->database);
 
             if ($this->connection->connect_error) {
@@ -87,6 +86,66 @@ class Schema
         $this->wordpress = false;
 
         return $this->wordpress;
+    }
+
+    /**
+     * Prepare connection credential function
+     *
+     * @return void
+     */
+    private function resolveConnectionCredential()
+    {
+        /** Host */
+        $host = getenv("DB_HOST") ?? "";
+
+        if ((!isset($host) || $host == "") && isset($_ENV["DB_HOST"])) {
+            $host = $_ENV["DB_HOST"] ?? "";
+        }
+
+        if ((!isset($host) || $host == "") && defined('DB_HOST')) {
+            $host = constant('DB_HOST') ?? "";
+        }
+
+        $this->host = $host;
+
+        /** Username */
+        $user = getenv("DB_USER") ?? "";
+
+        if ((!isset($user) || $user == "") && isset($_ENV["DB_USER"])) {
+            $user = $_ENV["DB_USER"] ?? "";
+        }
+
+        if ((!isset($user) || $user == "") && defined('DB_USER')) {
+            $this->username = constant('DB_USER') ?? "";
+        }
+
+        $this->username = $user;
+
+        /** Password */
+        $password = getenv("DB_PASSWORD") ?? "";
+
+        if ((!isset($password) || $password == "") && isset($_ENV["DB_PASSWORD"])) {
+            $password = $_ENV["DB_PASSWORD"] ?? "";
+        }
+
+        if ((!isset($password) || $password == "") && defined('DB_PASSWORD')) {
+            $this->password = constant('DB_PASSWORD') ?? "";
+        }
+
+        $this->password = $password;
+
+        /** Database */
+        $database = getenv("DB_NAME") ?? "";
+
+        if ((!isset($database) || $database == "") && isset($_ENV["DB_NAME"])) {
+            $database = $_ENV["DB_NAME"] ?? "";
+        }
+
+        if ((!isset($database) || $database == "") && defined('DB_NAME')) {
+            $this->database = constant('DB_NAME') ?? "";
+        }
+
+        $this->database = $database;
     }
 
     /**
