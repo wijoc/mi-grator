@@ -1,6 +1,6 @@
 <?php
 
-use Wijoc\MIGrator;
+use Wijoc\MIGrator\Migrations\Migration;
 
 if (defined('WP_CLI') && WP_CLI) {
     class MigrationCommand
@@ -82,9 +82,9 @@ if (defined('WP_CLI') && WP_CLI) {
 
     /** Register WP CLI Command */
     $migrationCommand = new MigrationCommand();
-    WP_CLI::add_command('make:migration', [new MigrationCommand(), 'createMigration']);
-    WP_CLI::add_command('migrate', [new MigrationCommand(), 'migrate']);
-    WP_CLI::add_command('migrate:fresh', [new MigrationCommand(), 'fresh']);
-    WP_CLI::add_command('migrate:rollback', [new MigrationCommand(), 'rollback']);
-    WP_CLI::add_command('migrate:reset', [new MigrationCommand(), 'reset']);
+    WP_CLI::add_command('mi-grator make:migration', [new MigrationCommand(), 'createMigration']);
+    WP_CLI::add_command('mi-grator migrate', [new MigrationCommand(), 'migrate']);
+    WP_CLI::add_command('mi-grator migrate:fresh', [new MigrationCommand(), 'fresh']);
+    WP_CLI::add_command('mi-grator migrate:rollback', [new MigrationCommand(), 'rollback']);
+    WP_CLI::add_command('mi-grator migrate:reset', [new MigrationCommand(), 'reset']);
 }
