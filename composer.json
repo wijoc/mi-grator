@@ -20,11 +20,8 @@
         }
     },
     "bin": [
-        "bin/migrate"
+        "bin/mi-grator"
     ],
-    "scripts": {
-        "migrate": "Wijoc\\MIGrator\\Kernel::run"
-    },
     "suggest": {
         "wp-cli/wp-cli": "Install WP-CLI globally if you want WP-CLI support"
     }
