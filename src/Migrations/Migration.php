@@ -501,7 +501,7 @@ class Migration
             }
 
             foreach ($migrations as $migration) {
-                $migratedFiles[] = $migration['migrations'];
+                $migratedFiles[] = $migration['migration'];
             }
         } else {
             if (is_object($results)) {
