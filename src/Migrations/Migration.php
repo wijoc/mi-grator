@@ -257,8 +257,8 @@ class Migration
         $defaultMigrationCode = <<<PHP
             <?php
 
-            use Wijoc\MIGrator\Migration;
-            use Wijoc\MIGrator\Schema;
+            use Wijoc\MIGrator\Migrations\Migration;
+            use Wijoc\MIGrator\Migrations\Schema;
 
             return new class extends Migration
             {
@@ -362,6 +362,10 @@ class Migration
             }
         }
 
+        if (empty($newMigrated)) {
+            echo "Nothing to migrate." . PHP_EOL;
+        }
+
         $this->writeMigrationLog($newMigrated);
     }
 
@@ -406,6 +410,10 @@ class Migration
                     echo "Successfully migrate {$filename} \n";
                 }
             }
+        }
+
+        if (empty($newMigrated)) {
+            echo "Nothing to migrate." . PHP_EOL;
         }
 
         $this->writeMigrationLog($newMigrated);
